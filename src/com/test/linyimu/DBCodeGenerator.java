@@ -91,7 +91,7 @@ public class DBCodeGenerator {
 				relation.setForeignClass(cls2);
 				list = relationTypes.get(cls1.hashCode());
 				if (list == null) {
-					list = new ArrayList<>();
+					list = new ArrayList<Relation>();
 					relationTypes.put(cls1.hashCode(), list);
 				}
 				list.add(relation);
@@ -153,7 +153,7 @@ public class DBCodeGenerator {
 		tm.setTableName(clazz.getSimpleName());
 
 		Field[] fields = clazz.getDeclaredFields();
-		List<ColumnModel> cms = new ArrayList<>();
+		List<ColumnModel> cms = new ArrayList<ColumnModel>();
 		for (Field field : fields) {
 			// 不是静态的
 			if (!Modifier.isStatic(field.getModifiers())) {
@@ -798,7 +798,7 @@ public class DBCodeGenerator {
 	/**
 	 * 多对多关系间的链接表
 	 */
-	Map<Integer, String> relateSqls = new HashMap<>();
+	Map<Integer, String> relateSqls = new HashMap<Integer, String>();
 
 	/**
 	 * 获取创建表的Sql语句
