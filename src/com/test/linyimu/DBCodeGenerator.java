@@ -39,15 +39,6 @@ public class DBCodeGenerator {
 		relationTypes = new HashMap<Integer, List<Relation>>();
 	}
 
-	public static void main(String[] args) {
-		instence = getInstence();
-		instence.addClass(Employees.class);
-		instence.addClass(Department.class);
-		instence.addClass(Job.class);
-		instence.setPackage("com.lym.test");
-		instence.execute();
-	}
-
 	public static DBCodeGenerator getInstence() {
 		if (instence == null) {
 			instence = new DBCodeGenerator();
@@ -440,12 +431,13 @@ public class DBCodeGenerator {
 		append("Type[] params = ((ParameterizedType) genType).getActualTypeArguments();",
 				2, true);
 		append("clazz = (Class<T>) params[0];", 2, true);
+		append("this.tableName = tableName;", 2, true);
 		append("if (tableName == null) {", 2, true);
 		append("this.tableName = clazz.getSimpleName();", 3, true);
 		append("}", 2, true);
-		append("this.tableName = tableName;", 2, true);
 
-		append("dbHelper = new DBHelper(context, tableName);", 2, true);
+		append("dbHelper = new DBHelper(context,context.getApplicationInfo().name);",
+				2, true);
 
 		append("}", 1, true);
 		appendLine(1);
@@ -732,7 +724,18 @@ public class DBCodeGenerator {
 	 * @param fileName
 	 */
 	private void toFile(String text, String fileName) {
-		File file = new File("src/" + fileName);
+		String path = "src/";
+		if (packageName != null) {
+			String[] split = packageName.split("\\.");
+			for (int i = 0; i < split.length; i++) {
+				path = path + split[i] + "/";
+			}
+		}
+		File file = new File(path);
+		if (!file.exists()) {
+			file.mkdirs();
+		}
+		file = new File(path, fileName);
 		System.out.println(file.getAbsolutePath());
 		try {
 			FileOutputStream fos = new FileOutputStream(file);
@@ -740,7 +743,6 @@ public class DBCodeGenerator {
 			fos.flush();
 			fos.close();
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
@@ -804,6 +806,8 @@ public class DBCodeGenerator {
 	 * 获取创建表的Sql语句
 	 * 
 	 * @param clazz
+	 * @param isAccessParentField
+	 *            是否使用父类的字段
 	 * @return
 	 */
 	@SuppressWarnings("unused")

@@ -9,7 +9,7 @@ public class Job {
 	private Double salary;
 	private String name;
 	private Employees emp;
-	private List<Employees> emps;
+	//private List<Employees> emps;
 
 	public static void main(String[] args) throws NoSuchFieldException, SecurityException {
 //		Field declaredField = Job.class.getDeclaredField("dept");

@@ -7,6 +7,7 @@ public class Employees {
 	private int salary;
 	private String name;
 	private Department dept;
+	private Department dept2;
 //	private Job job;
 	//private List<Job> jobs;
 
