@@ -37,6 +37,11 @@ public class ColumnModel {
 
 	private Class classType;
 
+	/**
+	 * ÊÇ·ñÊÇÖ÷¼ü
+	 */
+	private boolean isPrimaryKey;
+
 	// private
 
 	/**
@@ -54,8 +59,6 @@ public class ColumnModel {
 	 */
 	private String defaultValue = "";
 
-
-	
 	public Class getClassType() {
 		return classType;
 	}
@@ -100,21 +103,16 @@ public class ColumnModel {
 		return defaultValue;
 	}
 
-	// public boolean isRelative() {
-	// return isRelative;
-	// }
-	//
-	// public void setRelative(boolean isRelative) {
-	// this.isRelative = isRelative;
-	// }
-	//
-	// public Relation getRelation() {
-	// return relation;
-	// }
-	//
-	// public void setRelation(Relation relation) {
-	// this.relation = relation;
-	// }
+	
+	
+
+	public boolean isPrimaryKey() {
+		return isPrimaryKey;
+	}
+
+	public void setPrimaryKey(boolean isPrimaryKey) {
+		this.isPrimaryKey = isPrimaryKey;
+	}
 
 	public void setDefaultValue(String defaultValue) {
 		if ("text".equalsIgnoreCase(columnType)) {

@@ -8,6 +8,16 @@ import java.lang.annotation.Target;
 @Target(ElementType.FIELD)
 @Retention(RetentionPolicy.RUNTIME)
 public @interface Column {
+	/** 自动增长 (只能作用的int，long类型的字段上） */
+	public static int KEY_GENERATOR_INCREASE = 0;
+	/** 使用对象的HashCode码(只能作用的int，long类型的字段上） */
+	public static int KEY_GENERATOR_HASHCODE = 1;
+	/** 使用UUID ,只能作用在String类型的字段上 */
+	public static int KEY_GENERATOR_UUID = 2;
+	/** 自定义 */
+	public static int KEY_GENERATOR_CUSTOM = 3;
+
 	/** 是否是主键 */
-	public boolean primaryKey() default true;
+	public int primaryKey() default KEY_GENERATOR_INCREASE;
+
 }

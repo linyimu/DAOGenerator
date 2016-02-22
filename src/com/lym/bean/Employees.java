@@ -1,4 +1,4 @@
-package com.test;
+package com.lym.bean;
 
 import java.util.List;
 

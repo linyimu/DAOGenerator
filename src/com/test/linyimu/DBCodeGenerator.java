@@ -6,8 +6,10 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -15,12 +17,10 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import com.lym.bean.Student;
 import com.lym.dao.bean.ColumnModel;
 import com.lym.dao.bean.Relation;
 import com.lym.dao.bean.TableModel;
-import com.test.Department;
-import com.test.Employees;
-import com.test.Job;
 
 /**
  * Android数据库代码生成器
@@ -31,12 +31,12 @@ import com.test.Job;
 public class DBCodeGenerator {
 	StringBuilder builder = null;
 	List<Class> clazzs = null;
-	Map<Integer, List<Relation>> relationTypes = null;
+	Map<Integer, List<Relation>> relations = null;
 	private static DBCodeGenerator instence;
 
 	public DBCodeGenerator() {
 		clazzs = new ArrayList<Class>();
-		relationTypes = new HashMap<Integer, List<Relation>>();
+		relations = new HashMap<Integer, List<Relation>>();
 	}
 
 	public static DBCodeGenerator getInstence() {
@@ -65,6 +65,16 @@ public class DBCodeGenerator {
 		return instence;
 	}
 
+	/**
+	 * 主键的类型（如int、String等）
+	 */
+	private String primaryKeyType;
+
+	public DBCodeGenerator setPrimaryKeyType(String primaryKeyType) {
+		this.primaryKeyType = primaryKeyType;
+		return instence;
+	}
+
 	public void execute() {
 		int size = clazzs.size();
 		// 先判断两个类的关系
@@ -75,39 +85,29 @@ public class DBCodeGenerator {
 				if (i == j)
 					continue;
 				Class cls2 = clazzs.get(j);
-				int relationType = getRelation(cls1, cls2);
-				Relation relation = new Relation();
-				relation.setType(relationType);
-				relation.setPrimaryClass(cls1);
-				relation.setForeignClass(cls2);
-				list = relationTypes.get(cls1.hashCode());
+				Relation relation = getRelation(cls1, cls2);
+				list = relations.get(cls1.hashCode());
 				if (list == null) {
 					list = new ArrayList<Relation>();
-					relationTypes.put(cls1.hashCode(), list);
+					relations.put(cls1.hashCode(), list);
 				}
 				list.add(relation);
 			}
 		}
 
-		// for (Class clz : clazzs) {
-		// String sql = getTableSql(clz);
-		// }
-		//
-		//
-		//
-		// Set<Entry<Integer, String>> entrySet = relateSqls.entrySet();
-		// Iterator<Entry<Integer, String>> iterator = entrySet.iterator();
-		// while (iterator.hasNext()) {
-		// Entry<Integer, String> next = iterator.next();
-		// System.out.println(next.getValue());
-		// }
-
+		if (primaryKeyType == null) {
+			primaryKeyType = "int";
+		}
 		generatorDBHelper(clazzs, false);
 		genaratorIDao();
 		genaratorBaseDao();
+
 		for (Class cls : clazzs) {
 			genaratorClassDao(cls);
+			genaratorClassDaoHelper(cls);
 		}
+
+		// getRelationType(Teacher.class);
 
 	}
 
@@ -221,7 +221,7 @@ public class DBCodeGenerator {
 		}
 
 		// 添加关联关系
-		List<Relation> list = relationTypes.get(clazz.hashCode());
+		List<Relation> list = relations.get(clazz.hashCode());
 		if (list != null) {
 			for (Relation rela : list) {
 				// 有关联关系
@@ -265,6 +265,21 @@ public class DBCodeGenerator {
 	}
 
 	/**
+	 * 添加类的说明信息
+	 */
+	public void insertClassDesc() {
+
+		SimpleDateFormat sdf = new SimpleDateFormat("yyyy年MM月dd日 hh:mm:ss");
+		String date = sdf.format(new Date(System.currentTimeMillis()));
+		append("/**", 0, true);
+		append(" *", 0, true);
+		append(" * @author linyimu", 0, true);
+		append(" * " + date, 0, true);
+		append(" *", 0, true);
+		append(" */", 0, true);
+	}
+
+	/**
 	 * 生成DBHelper文件
 	 * 
 	 * @param clss
@@ -285,6 +300,7 @@ public class DBCodeGenerator {
 		append("import android.database.sqlite.SQLiteOpenHelper;", 0, true);
 		appendLine(2);
 
+		insertClassDesc();
 		append("public class DBHelper extends SQLiteOpenHelper {", 0, true);
 
 		append("public DBHelper(Context context, String name, CursorFactory factory,int version, DatabaseErrorHandler errorHandler) {",
@@ -374,10 +390,10 @@ public class DBCodeGenerator {
 		append("import java.util.List;", 0, true);
 		append("import java.util.Map;", 0, true);
 		appendLine(2);
-
+		insertClassDesc();
 		append("public interface IDao<T> {", 0, true);
 		appendLine(1);
-		append("public T get(int id);", 1, true);
+		append("public T get(" + primaryKeyType + " id);", 1, true);
 		appendLine(1);
 		append("public List<T> getAll();", 1, true);
 		appendLine(1);
@@ -385,10 +401,10 @@ public class DBCodeGenerator {
 		appendLine(1);
 		append("public int deleteAll();", 1, true);
 		appendLine(1);
-		append("public int delete(int  id);", 1, true);
+		append("public int delete(" + primaryKeyType + "  id);", 1, true);
 		appendLine(1);
-		append("public int update(int id, Map<String, Object> fields);", 1,
-				true);
+		append("public int update(" + primaryKeyType
+				+ " id, Map<String, Object> fields);", 1, true);
 		appendLine(1);
 		append("}", 0, true);
 
@@ -412,7 +428,7 @@ public class DBCodeGenerator {
 		append("import java.lang.reflect.Type;", 0, true);
 		append("import android.content.Context;", 0, true);
 		append("import android.database.sqlite.SQLiteDatabase;", 0, true);
-
+		insertClassDesc();
 		append("public abstract class BaseDao<T> implements IDao<T> {", 0, true);
 		appendLine(1);
 		append("public DBHelper dbHelper;", 1, true);
@@ -436,8 +452,8 @@ public class DBCodeGenerator {
 		append("this.tableName = clazz.getSimpleName();", 3, true);
 		append("}", 2, true);
 
-		append("dbHelper = new DBHelper(context,context.getApplicationInfo().name);",
-				2, true);
+		append("dbHelper = new DBHelper(context,context.getPackageName());", 2,
+				true);
 
 		append("}", 1, true);
 		appendLine(1);
@@ -452,7 +468,7 @@ public class DBCodeGenerator {
 		appendLine(1);
 
 		append("@Override", 1, true);
-		append("public int delete(int id) {", 1, true);
+		append("public int delete(" + primaryKeyType + " id) {", 1, true);
 		append("db = dbHelper.getWritableDatabase();", 2, true);
 		append("int n = db.delete(clazz.getSimpleName(),\"id=?\",new String[] { String.valueOf(id) });",
 				2, true);
@@ -486,7 +502,8 @@ public class DBCodeGenerator {
 		append("import android.content.Context;", 0, true);
 		append("import android.database.Cursor;", 0, true);
 		append("import " + clazz.getName() + ";", 0, true);
-
+		appendLine(2);
+		insertClassDesc();
 		append("public class " + clazz.getSimpleName() + "Dao extends BaseDao<"
 				+ tableName + "> {", 0, true);
 		append("public " + tableName + "Dao(Context context) {", 1, true);
@@ -496,18 +513,21 @@ public class DBCodeGenerator {
 
 		// get(id)方法
 		append("@Override", 1, true);
-		append("public " + tableName + " get(int id) {", 1, true);
+		append("public " + tableName + " get(" + primaryKeyType + " id2) {", 1,
+				true);
 		append("db = dbHelper.getReadableDatabase();", 2, true);
-		append(tableName + " " + tableName.toLowerCase() + " = new "
-				+ tableName + "();", 2, true);
-		append("Cursor cursor = db.query(tableName, null, \"id=?\", new String[] { String.valueOf(id) }, null, null, null);",
+		append(tableName + " " + firstLettersLowercase(tableName) + " = null;",
+				2, true);
+		append("Cursor cursor = db.query(tableName, null, \"id=?\", new String[] { String.valueOf(id2) }, null, null, null);",
 				2, true);
 		append("if (cursor.moveToNext()) {", 2, true);
+		append(firstLettersLowercase(tableName) + " = new " + tableName + "();",
+				2, true);
 		CursorToEntry(tableModel, tableName);
 		append("}", 2, true);
 		append("cursor.close();", 2, true);
 		append("db.close();", 2, true);
-		append("return " + tableName.toLowerCase() + ";", 2, true);
+		append("return " + firstLettersLowercase(tableName) + ";", 2, true);
 		append("}", 1, true);
 		appendLine(2);
 
@@ -515,18 +535,21 @@ public class DBCodeGenerator {
 		append("@Override", 1, true);
 		append("public List<" + tableName + "> getAll() {", 1, true);
 		append("db = dbHelper.getReadableDatabase();", 2, true);
-		append("List<" + tableName + "> " + tableName.toLowerCase()
+		append("List<" + tableName + "> " + firstLettersLowercase(tableName)
 				+ "s = new ArrayList<" + tableName + ">();", 2, true);
 		append("Cursor cursor = db.query(tableName, null, null,null, null, null, null);",
 				2, true);
+
 		append("while (cursor.moveToNext()) {", 2, true);
-		append("" + tableName + " " + tableName.toLowerCase() + " = new "
-				+ tableName + "();", 3, true);
+		append("" + tableName + " " + firstLettersLowercase(tableName)
+				+ " = new " + tableName + "();", 3, true);
 		CursorToEntry(tableModel, tableName);
-		append(tableName.toLowerCase() + "s.add(" + tableName.toLowerCase()
-				+ ");", 3, true);
+		append(firstLettersLowercase(tableName) + "s.add("
+				+ firstLettersLowercase(tableName) + ");", 3, true);
 		append("}", 2, true);
-		append("return " + tableName.toLowerCase() + "s;", 2, true);
+
+		append("return " + tableName.toLowerCase() + "s.isEmpty()?null:"
+				+ tableName.toLowerCase() + "s;", 2, true);
 		append("}", 1, true);
 		appendLine(2);
 
@@ -552,27 +575,24 @@ public class DBCodeGenerator {
 		}
 
 		// 关联关系
-		List<Relation> list = relationTypes.get(clazz.hashCode());
+		List<Relation> list = relations.get(clazz.hashCode());
 		for (Relation re : list) {
 			if (re.getType() == Relation.MORE_TO_ONE
 					|| re.getType() == Relation.ONE_TO_ONE) {
-				Class foreignClass = re.getForeignClass();
-				Field[] declaredFields = clazz.getDeclaredFields();
-				for (Field field : declaredFields) {
-					String fieldTypeName = field.getType().getSimpleName();
-					if (field.getType() == foreignClass) {
-						String fieldName = field.getName();
-						append(fieldTypeName + " "
-								+ fieldTypeName.toLowerCase() + " = t.get"
-								+ fieldName.substring(0, 1).toUpperCase()
-								+ fieldName.substring(1) + "();", 2, true);
-						append("if(" + fieldTypeName.toLowerCase() + "!=null){",
-								2, true);
-						append("values.put(\"" + fieldTypeName + "_id\","
-								+ fieldTypeName.toLowerCase() + ".getId());",
-								3, true);
-						append("}", 2, true);
-					}
+				String fieldName = re.getFieldName();
+				String fieldTypeName = re.getForeignClass().getSimpleName();
+				// 如果存在这个字段
+				if (re.getFieldName() != null) {
+					append(fieldTypeName + " " + fieldTypeName.toLowerCase()
+							+ " = t.get"
+							+ fieldName.substring(0, 1).toUpperCase()
+							+ fieldName.substring(1) + "();", 2, true);
+					append("if(" + fieldTypeName.toLowerCase() + "!=null){", 2,
+							true);
+					append("values.put(\"" + fieldTypeName + "_id\","
+							+ fieldTypeName.toLowerCase() + ".getId());", 3,
+							true);
+					append("}", 2, true);
 				}
 			}
 		}
@@ -585,8 +605,8 @@ public class DBCodeGenerator {
 		appendLine(2);
 		// update方法
 		append("@Override", 1, true);
-		append("public int update(int id, Map<String, Object> fields) {", 1,
-				true);
+		append("public int update(" + primaryKeyType
+				+ " id, Map<String, Object> fields) {", 1, true);
 		append("db = dbHelper.getWritableDatabase();", 2, true);
 		append("ContentValues values = new ContentValues();", 2, true);
 		append("Iterator<Entry<String, Object>> iterator = fields.entrySet().iterator();",
@@ -656,7 +676,7 @@ public class DBCodeGenerator {
 		Class tableClass = tableModel.getTableClass();
 
 		// 获取关联关系
-		List<Relation> list = relationTypes.get(tableClass.hashCode());
+		List<Relation> list = relations.get(tableClass.hashCode());
 		for (Relation re : list) {
 			if (re.getType() == Relation.MORE_TO_ONE
 					|| re.getType() == Relation.ONE_TO_ONE) {
@@ -675,8 +695,11 @@ public class DBCodeGenerator {
 								+ fieldTypeName.toLowerCase() + " = new "
 								+ fieldTypeName + "();", 3, true);
 						append(fieldTypeName.toLowerCase()
-								+ ".setId(cursor.getInt(cursor.getColumnIndex(\""
-								+ fieldTypeName + "_id\")" + "));", 3, true);
+								+ ".setId(cursor.get"
+								+ primaryKeyType.substring(0, 1).toUpperCase()
+								+ primaryKeyType.substring(1).toLowerCase()
+								+ "(cursor.getColumnIndex(\"" + fieldTypeName
+								+ "_id\")" + "));", 3, true);
 
 						append(tableName.toLowerCase() + ".set"
 								+ fieldName.substring(0, 1).toUpperCase()
@@ -686,6 +709,528 @@ public class DBCodeGenerator {
 				}
 			}
 		}
+	}
+
+	public static void main(String[] args) {
+		// DBCodeGenerator instence2 = getInstence();
+		// instence.addClass(Cource.class);
+		// instence.addClass(Score.class);
+		// instence.addClass(Student.class);
+		// instence.addClass(Teacher.class);
+		//
+		// instence.execute();
+		// Relation relation = instence.getRelation(Student.class,
+		// Teacher.class);
+		// System.out.println(relation);
+	}
+
+	/**
+	 * 是否有外键
+	 * 
+	 * @param clazz
+	 * @return
+	 */
+	public boolean isHasForegnkey(Class clazz) {
+		// 关联关系
+		List<Relation> list = relations.get(clazz.hashCode());
+		boolean has = false;
+		// 判断如果没有外键关系，则就不生成该文件
+		for (Relation re : list) {
+			if (re.getFieldName() != null) {
+				has = true;
+				return has;
+			}
+		}
+		return has;
+	}
+
+	/**
+	 * 生成Dao帮助类，实现级联删除更新查询等操作
+	 * 
+	 * @param clazz
+	 * @param true
+	 */
+	public void genaratorClassDaoHelper(Class clazz) {
+		if (!isHasForegnkey(clazz)) {
+			return;
+		}
+
+		// 关联关系
+		List<Relation> list = relations.get(clazz.hashCode());
+		List<String> importedPackage = new ArrayList<String>();
+		builder = new StringBuilder();
+
+		String tableName = clazz.getSimpleName();
+
+		if (packageName != null) {
+			append("package " + packageName + ";", 0, true);
+			appendLine(1);
+		}
+		append("import java.util.Iterator;", 0, true);
+		append("import java.util.List;", 0, true);
+		append("import java.util.Map;", 0, true);
+		append("import java.util.Map.Entry;", 0, true);
+		append("import android.content.Context;", 0, true);
+		appendLine(2);
+		insertClassDesc();
+		append("public class " + tableName + "DaoHelper {", 0, true);
+		append("//声明变量", 1, true);
+		append(tableName + "Dao" + " " + tableName.toLowerCase() + "Dao;", 1,
+				true);
+
+		insertImportPackge(clazz.getName());
+
+		// 声明变量
+		for (Relation re : list) {
+			if (re.getFieldName() != null) {
+				Class foreignClass = re.getForeignClass();
+				if (!importedPackage.contains(foreignClass.getName())) {
+					insertImportPackge(foreignClass.getName());
+				}
+				String foreignClassName = foreignClass.getSimpleName();
+				if (isHasForegnkey(foreignClass)) {
+					// 如果有外键就生成DaoHelper
+					append(foreignClassName + "DaoHelper" + " "
+							+ foreignClassName.toLowerCase() + "DaoHelper;", 1,
+							true);
+					insertImportPackge(packageName + "." + foreignClassName
+							+ "DaoHelper");
+					importedPackage.add(packageName + "." + foreignClassName
+							+ "DaoHelper");
+				} else {
+					// 生成Dao
+					append(foreignClassName + "Dao" + " "
+							+ foreignClassName.toLowerCase() + "Dao;", 1, true);
+					insertImportPackge(packageName + "." + foreignClassName
+							+ "Dao");
+					importedPackage.add(packageName + "." + foreignClassName
+							+ "Dao");
+				}
+
+			}
+		}
+
+		// 构造函数
+		append("public " + tableName + "DaoHelper(Context context) {", 1, true);
+		append(tableName.toLowerCase() + "Dao = new " + tableName
+				+ "Dao(context);", 2, true);
+		// 初始化变量
+		for (Relation re : list) {
+			if (re.getFieldName() != null) {
+				Class foreignClass = re.getForeignClass();
+				String foreignClassName = foreignClass.getSimpleName();
+				String dao = null;
+				if (isHasForegnkey(foreignClass)) {
+					dao = "DaoHelper";
+				} else {
+					dao = "Dao";
+				}
+				append(foreignClassName.toLowerCase() + dao + " = new "
+						+ foreignClassName + dao + "(context);", 2, true);
+			}
+		}
+
+		append("}", 1, true);
+		appendLine(2);
+
+		// get方法
+		append("public " + tableName + " get(" + primaryKeyType + " id) {", 1,
+				true);
+		append(tableName + " " + firstLettersLowercase(tableName) + " = "
+				+ firstLettersLowercase(tableName) + "Dao.get(id);", 2, true);
+		append("if(" + firstLettersLowercase(tableName) + " == null){", 2, true);
+		append("return null;", 3, true);
+		append("}", 2, true);
+		// 查找关联关系
+		Field[] fields = clazz.getDeclaredFields();
+		for (Relation re : list) {
+			if (re.getFieldName() != null) {
+				String foreignClassName = re.getForeignClass().getSimpleName();
+				String daoName = null;
+				if (isHasForegnkey(re.getForeignClass())) {
+					daoName = "DaoHelper";
+				} else {
+					daoName = "Dao";
+				}
+
+				int type = re.getType();
+				if (type == Relation.MORE_TO_ONE || type == Relation.ONE_TO_ONE) {
+					append(foreignClassName + " "
+							+ firstLettersLowercase(foreignClassName) + " =  "
+							+ firstLettersLowercase(tableName) + ".get"
+							+ foreignClassName + "();", 2, true);
+
+					append("if (" + firstLettersLowercase(foreignClassName)
+							+ " != null){", 2, true);
+
+					append(firstLettersLowercase(foreignClassName) + " = "
+							+ firstLettersLowercase(foreignClassName) + daoName
+							+ ".get(" + firstLettersLowercase(foreignClassName)
+							+ ".getId());", 3, true);
+					append(firstLettersLowercase(tableName) + ".set"
+							+ firstLettersUpper(re.getFieldName()) + "("
+							+ firstLettersLowercase(foreignClassName) + ");",
+							3, true);
+					append("}", 2, true);
+				} else if (type == Relation.MORE_TO_MORE
+						|| type == Relation.ONE_TO_MORE) {
+					append("List<" + foreignClassName + "> "
+							+ firstLettersLowercase(foreignClassName) + "s =  "
+							+ firstLettersLowercase(tableName) + ".get"
+							+ foreignClassName + "();", 2, true);
+
+					append("if (" + firstLettersLowercase(foreignClassName)
+							+ "s != null){", 2, true);
+					append("List<" + foreignClassName + "> "
+							+ "tempList =  new ArrayList<" + foreignClassName
+							+ ">();", 3, true);
+					append("for(" + foreignClassName + " "
+							+ firstLettersLowercase(foreignClassName) + ":"
+							+ firstLettersLowercase(foreignClassName) + "s){",
+							3, true);
+					append(foreignClassName + " t = "
+							+ firstLettersLowercase(foreignClassName) + daoName
+							+ ".get(" + firstLettersLowercase(foreignClassName)
+							+ ".getId())", 4, true);
+					append("if(t != null){", 4, true);
+					append("tempList.add(t);", 5, true);
+					append("}", 4, true);
+					append("}", 3, true);
+
+					append("if(!tempList.isEmpty()){", 3, true);
+					append(firstLettersLowercase(tableName) + ".set"
+							+ firstLettersUpper(re.getFieldName())
+							+ "(tempList);", 4, true);
+					append("}", 3, true);
+					append("}", 2, true);
+				}
+			}
+		}
+
+		append("return  " + firstLettersLowercase(tableName) + ";", 2, true);
+		append("}", 1, true);
+
+		appendLine(2);
+
+		// getAll
+		append("public List<" + tableName + "> getAll() {", 1, true);
+		append("List<" + tableName + "> all = "
+				+ firstLettersLowercase(tableName) + "Dao.getAll();", 2, true);
+		append("if(all == null){", 2, true);
+		append("return  null;", 3, true);
+		append("}", 2, true);
+		append("for (" + tableName + " " + firstLettersLowercase(tableName)
+				+ " : all) {", 2, true);
+		for (Relation re : list) {
+			if (re.getFieldName() != null) {
+				String foreignClassName = re.getForeignClass().getSimpleName();
+				String daoName = null;
+				if (isHasForegnkey(re.getForeignClass())) {
+					daoName = "DaoHelper";
+				} else {
+					daoName = "Dao";
+				}
+
+				int type = re.getType();
+				if (type == Relation.MORE_TO_ONE || type == Relation.ONE_TO_ONE) {
+					append(foreignClassName + " "
+							+ firstLettersLowercase(foreignClassName) + " =  "
+							+ firstLettersLowercase(tableName) + ".get"
+							+ foreignClassName + "();", 3, true);
+
+					append("if (" + firstLettersLowercase(foreignClassName)
+							+ " != null){", 3, true);
+
+					append(firstLettersLowercase(foreignClassName) + " = "
+							+ firstLettersLowercase(foreignClassName) + daoName
+							+ ".get(" + firstLettersLowercase(foreignClassName)
+							+ ".getId());", 4, true);
+					append(firstLettersLowercase(tableName) + ".set"
+							+ firstLettersUpper(re.getFieldName()) + "("
+							+ firstLettersLowercase(foreignClassName) + ");",
+							4, true);
+					append("}", 2, true);
+				} else if (type == Relation.MORE_TO_MORE
+						|| type == Relation.ONE_TO_MORE) {
+					append("List<" + foreignClassName + "> "
+							+ firstLettersLowercase(foreignClassName) + "s =  "
+							+ firstLettersLowercase(tableName) + ".get"
+							+ foreignClassName + "();", 3, true);
+
+					append("if (" + firstLettersLowercase(foreignClassName)
+							+ "s != null){", 3, true);
+					append("List<" + foreignClassName + "> "
+							+ "tempList =  new ArrayList<" + foreignClassName
+							+ ">();", 4, true);
+					append("for(" + foreignClassName + " "
+							+ firstLettersLowercase(foreignClassName) + ":"
+							+ firstLettersLowercase(foreignClassName) + "s){",
+							4, true);
+					append(foreignClassName + " t = "
+							+ firstLettersLowercase(foreignClassName) + daoName
+							+ ".get(" + firstLettersLowercase(foreignClassName)
+							+ ".getId())", 5, true);
+					append("if(t != null){", 5, true);
+					append("tempList.add(t);", 6, true);
+					append("}", 5, true);
+					append("}", 4, true);
+
+					append("if(!tempList.isEmpty()){", 4, true);
+					append(firstLettersLowercase(tableName) + ".set"
+							+ firstLettersUpper(re.getFieldName())
+							+ "(tempList);", 5, true);
+					append("}", 4, true);
+					append("}", 3, true);
+				}
+			}
+
+		}
+		append("}", 2, true);
+		append("return all;", 2, true);
+		append("}", 1, true);
+		appendLine(2);
+
+		// insert
+		append("public long insert(" + tableName + " "
+				+ firstLettersLowercase(tableName) + ") {", 1, true);
+		append("long insert = " + firstLettersLowercase(tableName)
+				+ "Dao.insert(" + firstLettersLowercase(tableName) + ");", 2,
+				true);
+		for (Relation re : list) {
+			if (re.getFieldName() != null) {
+				String foreignClassName = re.getForeignClass().getSimpleName();
+				String daoName = "Dao";
+				if (isHasForegnkey(re.getForeignClass())) {
+					daoName = "DaoHelper";
+				}
+				if (re.getType() == Relation.MORE_TO_ONE
+						|| re.getType() == Relation.ONE_TO_ONE) {
+					append(foreignClassName + " "
+							+ firstLettersLowercase(foreignClassName) + " = "
+							+ firstLettersLowercase(tableName) + ".get"
+							+ foreignClassName + "();", 2, true);
+					append("if(" + firstLettersLowercase(foreignClassName)
+							+ " != null){", 2, true);
+					append("//查看数据库中是否已经存在", 3, true);
+					append(foreignClassName + " "
+							+ firstLettersLowercase(foreignClassName) + "1 = "
+							+ firstLettersLowercase(foreignClassName) + daoName
+							+ ".get(" + firstLettersLowercase(foreignClassName)
+							+ ".getId());", 3, true);
+					append("if(" + firstLettersLowercase(foreignClassName)
+							+ "1 == null){", 3, true);
+					append("//数据库中不存在，插入数据库", 4, true);
+					append(firstLettersLowercase(foreignClassName) + daoName
+							+ ".insert("
+							+ firstLettersLowercase(foreignClassName) + ");",
+							4, true);
+					append("}", 3, true);
+					append("}", 2, true);
+				} else if (re.getType() == Relation.ONE_TO_MORE) {
+					append("List<" + foreignClassName + ">"
+							+ firstLettersLowercase(foreignClassName) + "s ="
+							+ firstLettersLowercase(tableName) + ".get"
+							+ firstLettersUpper(re.getFieldName()) + "();", 2,
+							true);
+					append("if(" + firstLettersLowercase(foreignClassName)
+							+ "s != null){", 2, true);
+					append("for(" + foreignClassName + " "
+							+ firstLettersLowercase(foreignClassName) + ":"
+							+ firstLettersLowercase(foreignClassName) + "s){",
+							3, true);
+					append("//查看数据库中是否已经存在", 4, true);
+					append(foreignClassName + " "
+							+ firstLettersLowercase(foreignClassName) + "1 = "
+							+ firstLettersLowercase(foreignClassName) + daoName
+							+ ".get(" + firstLettersLowercase(foreignClassName)
+							+ ".getId());", 4, true);
+
+					append("if(" + firstLettersLowercase(foreignClassName)
+							+ "1 == null){", 4, true);
+					append("//数据库中不存在，插入数据库", 5, true);
+					append(firstLettersLowercase(foreignClassName) + daoName
+							+ ".insert("
+							+ firstLettersLowercase(foreignClassName) + ");",
+							5, true);
+
+					append("}", 4, true);
+
+					append("}", 3, true);
+					append("}", 2, true);
+				}
+			}
+		}
+		append("return insert;", 2, true);
+		append("}", 1, true);
+		appendLine(2);
+
+		// update
+		append("/**", 1, true);
+		append(" *", 1, true);
+		append(" * update方法若存在关联关系，则关联的对象只能做插入操作，不能做更新操作", 1, true);
+		append(" *", 1, true);
+		append(" */", 1, true);
+		append("public int update(int id, Map<String, Object> fields) {", 1,
+				true);
+		append("int update = " + firstLettersLowercase(tableName)
+				+ "Dao.update(id, fields);", 2, true);
+
+		append("Iterator<Entry<String, Object>> iterator = fields.entrySet().iterator();",
+				2, true);
+		append("while (iterator.hasNext()) {", 2, true);
+		append("Entry<String, Object> next = iterator.next();", 3, true);
+		append("Object value = next.getValue();", 3, true);
+
+		boolean has1ton = false;
+		// 判断是否有1：n的关系
+		for (Relation re : list) {
+			if (re.getFieldName() != null
+					&& re.getType() == Relation.ONE_TO_MORE) {
+				has1ton = true;
+				break;
+			}
+		}
+		if (has1ton) {
+			append("if(value instanceof List<?>){", 3, true);
+			append("List ls = (List)value;", 4, true);
+			append("if(!ls.isEmpty()){", 4, true);
+			append("Object obj = ls.get(0);", 5, true);
+			for (Relation re : list) {
+				if (re.getFieldName() != null) {
+					String foreignClassName = re.getForeignClass()
+							.getSimpleName();
+					String daoName = "Dao";
+					if (isHasForegnkey(re.getForeignClass())) {
+						daoName = "DaoHelper";
+					}
+					if (re.getType() == Relation.ONE_TO_MORE) {
+						append("if(obj instanceof " + foreignClassName + "){",
+								5, true);
+						append("List<" + foreignClassName + "> lss = (List<"
+								+ foreignClassName + ">)value;", 6, true);
+						append("for(" + foreignClassName + " "
+								+ firstLettersLowercase(foreignClassName)
+								+ ":lss){", 6, true);
+
+						append(foreignClassName + " "
+								+ firstLettersLowercase(foreignClassName)
+								+ "1 = "
+								+ firstLettersLowercase(foreignClassName)
+								+ daoName + ".get("
+								+ firstLettersLowercase(foreignClassName)
+								+ ".getId());", 7, true);
+
+						append("if(" + firstLettersLowercase(foreignClassName)
+								+ "1 == null){", 7, true);
+						append("//数据库中不存在，插入数据库", 8, true);
+						append(firstLettersLowercase(foreignClassName)
+								+ daoName + ".insert("
+								+ firstLettersLowercase(foreignClassName)
+								+ ");", 8, true);
+						append("}", 7, true);
+						append("}", 6, true);
+						append("}", 5, true);
+					}
+
+				}
+
+			}
+
+			append("}", 4, true);
+			append("}", 3, true);
+		}
+
+		// 判断是否有1:1或者n:1的关系
+		boolean has1to1_nto1 = false;
+		for (Relation re : list) {
+			if (re.getFieldName() != null) {
+				if (re.getType() == Relation.MORE_TO_ONE
+						|| re.getType() == Relation.ONE_TO_ONE) {
+					has1to1_nto1 = true;
+					break;
+				}
+			}
+		}
+		int baseSpace = 3;
+		if (has1ton && has1to1_nto1) {
+			append("}else{", 3, true);
+			baseSpace = 4;
+		}
+
+		for (Relation re : list) {
+			if (re.getFieldName() != null) {
+				String foreignClassName = re.getForeignClass().getSimpleName();
+				String daoName = "Dao";
+				if (isHasForegnkey(re.getForeignClass())) {
+					daoName = "DaoHelper";
+				}
+
+				if (re.getType() == Relation.MORE_TO_ONE
+						|| re.getType() == Relation.ONE_TO_ONE) {
+
+					append("if(value instanceof " + foreignClassName + "){",
+							baseSpace, true);
+					append(foreignClassName + " "
+							+ firstLettersLowercase(foreignClassName) + " = "
+							+ firstLettersLowercase(foreignClassName) + daoName
+							+ ".get(((" + foreignClassName
+							+ ") value).getId());", baseSpace + 1, true);
+
+					append("if(" + firstLettersLowercase(foreignClassName)
+							+ " == null){", baseSpace + 1, true);
+					append("//数据库中不存在，插入数据库", baseSpace + 2, true);
+					append(firstLettersLowercase(foreignClassName) + daoName
+							+ ".insert((" + foreignClassName + ")value" + ");",
+							baseSpace + 2, true);
+					append("}", baseSpace + 1, true);
+					append("}", baseSpace, true);
+
+				}
+			}
+
+		}
+		if (has1ton && has1to1_nto1) {
+			append("}", baseSpace - 1, true);
+		}
+		append("}", 2, true);
+		append("return update;", 2, true);
+		append("}", 1, true);
+		append("}", 0, true);
+		System.out.println(builder.toString());
+
+		toFile(builder.toString(), tableName + "DaoHelper.java");
+	}
+
+	/**
+	 * 首字母大写
+	 * 
+	 * @param text
+	 * @return
+	 */
+	public String firstLettersUpper(String text) {
+		return text.substring(0, 1).toUpperCase() + text.substring(1);
+	}
+
+	/**
+	 * 首字母小写
+	 * 
+	 * @param text
+	 * @return
+	 */
+	public String firstLettersLowercase(String text) {
+		return text.substring(0, 1).toLowerCase() + text.substring(1);
+	}
+
+	public String createObject(Class cls) {
+		String simpleName = cls.getSimpleName();
+		return simpleName + " " + firstLettersLowercase(simpleName) + " = new "
+				+ simpleName + "();";
+	}
+
+	public String createObject(String className) {
+		String simpleName = className;
+		return simpleName + " " + firstLettersLowercase(simpleName) + " = new "
+				+ simpleName + "();";
 	}
 
 	private String getClassType(String fieldType) {
@@ -784,7 +1329,11 @@ public class DBCodeGenerator {
 	 * @param text
 	 */
 	public void insertImportPackge(String packge) {
-		int indexOf = builder.indexOf("public class");
+
+		int indexOf = builder.indexOf("import");
+		if (indexOf == -1) {
+			indexOf = builder.indexOf("public class");
+		}
 		if (indexOf != -1) {
 			builder.insert(indexOf, "import " + packge + ";\n");
 		} else {
@@ -839,12 +1388,9 @@ public class DBCodeGenerator {
 					|| Modifier.isStatic(f.getModifiers())) {
 				continue;
 			}
-
 			String fieldName = f.getName();
 			Class fieldType = f.getType();
-
 			String typeName = fieldType.getName();
-
 			String fieldTypeName = getFieldType(typeName);
 
 			if (fieldTypeName == null) {
@@ -855,10 +1401,8 @@ public class DBCodeGenerator {
 					// 判断关联类型
 					try {
 						Class tClass = getListTType(f);
-
 						boolean isForenkey1 = isForenkey(clazz, tClass);
 						boolean isForenkey2 = isForenkey(tClass, clazz);
-
 						// // 如果是1:n的关系
 						if (isForenkey1) {
 							// 添加外键
@@ -1001,78 +1545,188 @@ public class DBCodeGenerator {
 	 * @param cls1
 	 * @param cls2
 	 */
-	public int getRelation(Class cls1, Class cls2) {
-		// 1:1
-		boolean cls1HasCls2 = false;
-		boolean cls2HasCls1 = false;
-		// 是否包含集合
-		boolean cls1HasCls2s = false;
-		boolean cls2HasCls1s = false;
+	// public int getRelation(Class cls1, Class cls2) {
+	// // 1:1
+	// boolean cls1HasCls2 = false;
+	// boolean cls2HasCls1 = false;
+	// // 是否包含集合
+	// boolean cls1HasCls2s = false;
+	// boolean cls2HasCls1s = false;
+	// Field[] fields1 = cls1.getDeclaredFields();
+	// for (Field field : fields1) {
+	// Class<?> type = field.getType();
+	// if (type == cls2) {
+	// // 说明cls1中有cls2的引用
+	// cls1HasCls2 = true;
+	// }
+	// }
+	//
+	// Field[] fields2 = cls2.getDeclaredFields();
+	// for (Field field : fields2) {
+	// Class<?> type = field.getType();
+	// if (type == cls1) {
+	// // 说明cls2中有cls1的引用
+	// cls2HasCls1 = true;
+	// }
+	// }
+	//
+	// if (cls1HasCls2 && cls2HasCls1) {
+	// // 1:1的关系
+	// return Relation.ONE_TO_ONE;
+	// }
+	// if (cls1HasCls2) {
+	// // n:1的关系
+	// return Relation.MORE_TO_ONE;
+	// }
+	//
+	// if (cls2HasCls1) {
+	// // 1:n的关系
+	// return Relation.ONE_TO_MORE;
+	// }
+	//
+	// for (Field field : fields1) {
+	// Class<?> fieldType = field.getType();
+	// if (List.class.isAssignableFrom(fieldType)) {// 如果是集合
+	// Class tClass = getListTType(field);
+	// if (tClass == cls2) {
+	// cls1HasCls2s = true;
+	// }
+	// }
+	// }
+	//
+	// for (Field field : fields2) {
+	// Class<?> fieldType = field.getType();
+	// if (List.class.isAssignableFrom(fieldType)) {// 如果是集合
+	// Class tClass = getListTType(field);
+	// if (tClass == cls1) {
+	// cls2HasCls1s = true;
+	// }
+	// }
+	// }
+	//
+	// if (cls1HasCls2s && cls2HasCls1s) {
+	// // n:m
+	// return Relation.MORE_TO_MORE;
+	// }
+	// if (cls1HasCls2s) {
+	// // 1:n
+	// return Relation.ONE_TO_MORE;
+	// }
+	// if (cls2HasCls1s) {
+	// // n:1
+	// return Relation.MORE_TO_ONE;
+	// }
+	//
+	// return Relation.RELATION_NONE;
+	// }
+
+	// public static void main(String[] args) {
+	// DBCodeGenerator instence2 = getInstence();
+	// instence2.addClass(Student.class, Teacher.class);
+	// Relation re = instence2.getRe(Teacher.class, Student.class);
+	// System.out.println(re);
+	// }
+
+	/**
+	 * 获取两个类的关联关系
+	 * 
+	 * @param cls1
+	 * @param cls2
+	 * @return
+	 */
+	private Relation getRelation(Class cls1, Class cls2) {
+		Relation relationType = null;
+		Relation relationType2 = null;
+
+		// 取出cls1和cls2的关联关系
+		Map<Integer, Relation> cls1AllRelation = getClassAllRelation(cls1);
+		if (cls1AllRelation != null) {
+			relationType = cls1AllRelation.get(cls2.hashCode());
+		}
+		// 取出cls2和cls1的关联关系
+		Map<Integer, Relation> cls1AllRelation2 = getClassAllRelation(cls2);
+		if (cls1AllRelation2 != null) {
+			relationType2 = cls1AllRelation2.get(cls1.hashCode());
+		}
+
+		Relation relation = null;
+		if (relationType != null) {
+			relation = relationType.clone();
+		} else {
+			relation = new Relation();
+			relation.setPrimaryClass(cls1);
+			relation.setForeignClass(cls2);
+		}
+		int type1 = Relation.RELATION_NONE;
+		int type2 = Relation.RELATION_NONE;
+		if (relationType != null) {
+			type1 = relationType.getType();
+		}
+		if (relationType2 != null) {
+			type2 = relationType2.getType();
+		}
+		if (type1 == Relation.RELATION_NONE) {
+			if (type2 == Relation.ONE_TO_MORE) {
+				relation.setType(Relation.MORE_TO_ONE);
+			} else if (type2 == Relation.MORE_TO_ONE) {
+				relation.setType(Relation.ONE_TO_MORE);
+			}
+		} else if (type1 == Relation.ONE_TO_MORE
+				&& type2 == Relation.ONE_TO_MORE) {
+			relation.setType(Relation.MORE_TO_MORE);
+
+		} else if (type1 == Relation.ONE_TO_MORE
+				&& type2 == Relation.MORE_TO_ONE) {
+			relation.setType(Relation.ONE_TO_MORE);
+
+		} else if (type1 == Relation.MORE_TO_ONE
+				&& type2 == Relation.ONE_TO_MORE) {
+			relation.setType(Relation.MORE_TO_ONE);
+
+		} else if (type1 == Relation.MORE_TO_ONE
+				&& type2 == Relation.MORE_TO_ONE) {
+			relation.setType(Relation.ONE_TO_ONE);
+		}
+		return relation;
+	}
+
+	/**
+	 * 获取一个类的所有关联关系。单项的
+	 * 
+	 * @param cls1
+	 * @return
+	 */
+	private Map<Integer, Relation> getClassAllRelation(Class cls1) {
+		Map<Integer, Relation> relations = new HashMap<Integer, Relation>();
+		// List<Relation> relations = new ArrayList<Relation>();
 		Field[] fields1 = cls1.getDeclaredFields();
+		Relation relation1 = null;
 		for (Field field : fields1) {
 			Class<?> type = field.getType();
-			if (type == cls2) {
-				// 说明cls1中有cls2的引用
-				cls1HasCls2 = true;
+			Class tClass = type;
+			if (List.class.isAssignableFrom(type)) {// 如果是集合
+				tClass = getListTType(field);
 			}
-		}
-
-		Field[] fields2 = cls2.getDeclaredFields();
-		for (Field field : fields2) {
-			Class<?> type = field.getType();
-			if (type == cls1) {
-				// 说明cls2中有cls1的引用
-				cls2HasCls1 = true;
-			}
-		}
-
-		if (cls1HasCls2 && cls2HasCls1) {
-			// 1:1的关系
-			return Relation.ONE_TO_ONE;
-		}
-		if (cls1HasCls2) {
-			// n:1的关系
-			return Relation.MORE_TO_ONE;
-		}
-
-		if (cls2HasCls1) {
-			// 1:n的关系
-			return Relation.ONE_TO_MORE;
-		}
-
-		for (Field field : fields1) {
-			Class<?> fieldType = field.getType();
-			if (List.class.isAssignableFrom(fieldType)) {// 如果是集合
-				Class tClass = getListTType(field);
-				if (tClass == cls2) {
-					cls1HasCls2s = true;
+			if (clazzs.contains(tClass)) {
+				relation1 = new Relation();
+				relation1.setFieldName(field.getName());
+				relation1.setForeignClass(tClass);
+				relation1.setPrimaryClass(cls1);
+				if (List.class.isAssignableFrom(type)) {// 如果是集合
+					// 获取泛型
+					relation1.setType(Relation.ONE_TO_MORE);
+				} else {
+					relation1.setType(Relation.MORE_TO_ONE);
 				}
-			}
-		}
-
-		for (Field field : fields2) {
-			Class<?> fieldType = field.getType();
-			if (List.class.isAssignableFrom(fieldType)) {// 如果是集合
-				Class tClass = getListTType(field);
-				if (tClass == cls1) {
-					cls2HasCls1s = true;
+				Relation relation = relations.get(tClass.hashCode());
+				if (relation == null) {
+					relations.put(tClass.hashCode(), relation1);
 				}
+				// System.out.println("==" + relation1);
 			}
 		}
 
-		if (cls1HasCls2s && cls2HasCls1s) {
-			// n:m
-			return Relation.MORE_TO_MORE;
-		}
-		if (cls1HasCls2s) {
-			// 1:n
-			return Relation.ONE_TO_MORE;
-		}
-		if (cls2HasCls1s) {
-			// n:1
-			return Relation.MORE_TO_ONE;
-		}
+		return relations.isEmpty() ? null : relations;
 
-		return Relation.RELATION_NONE;
 	}
 }
