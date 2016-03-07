@@ -31,11 +31,29 @@ public class ColumnModel {
 	private String columnName;
 
 	/**
-	 * Type for column.
+	 * 列对应的java类型
+	 */
+	private String columnJavaType;
+
+	/**
+	 * 列对应的数据库类型
 	 */
 	private String columnType;
 
-	private Class classType;
+	// 是否要引用其他类
+	private boolean isRefrenceOther;
+
+	// 引用的类
+	private Class refrenceClass;
+
+	// 引用的类型（1：1，1：n，n:1,n:n)
+	private int refrenceType;
+
+	// 是否是集合
+	private boolean isSet;
+
+	// 是否就是所在类的字段
+	private boolean isLocal;
 
 	/**
 	 * 是否是主键
@@ -59,14 +77,6 @@ public class ColumnModel {
 	 */
 	private String defaultValue = "";
 
-	public Class getClassType() {
-		return classType;
-	}
-
-	public void setClassType(Class classType) {
-		this.classType = classType;
-	}
-
 	public String getColumnName() {
 		return columnName;
 	}
@@ -81,6 +91,30 @@ public class ColumnModel {
 
 	public void setColumnType(String columnType) {
 		this.columnType = columnType;
+	}
+
+	public boolean isLocal() {
+		return isLocal;
+	}
+
+	public void setLocal(boolean isLocal) {
+		this.isLocal = isLocal;
+	}
+
+	public int getRefrenceType() {
+		return refrenceType;
+	}
+
+	public void setRefrenceType(int refrenceType) {
+		this.refrenceType = refrenceType;
+	}
+
+	public boolean isSet() {
+		return isSet;
+	}
+
+	public void setSet(boolean isSet) {
+		this.isSet = isSet;
 	}
 
 	public boolean isNullable() {
@@ -103,15 +137,44 @@ public class ColumnModel {
 		return defaultValue;
 	}
 
-	
-	
-
 	public boolean isPrimaryKey() {
 		return isPrimaryKey;
 	}
 
 	public void setPrimaryKey(boolean isPrimaryKey) {
 		this.isPrimaryKey = isPrimaryKey;
+	}
+
+	public void setNullable(boolean isNullable) {
+		this.isNullable = isNullable;
+	}
+
+	public void setUnique(boolean isUnique) {
+		this.isUnique = isUnique;
+	}
+
+	public String getColumnJavaType() {
+		return columnJavaType;
+	}
+
+	public void setColumnJavaType(String columnJavaType) {
+		this.columnJavaType = columnJavaType;
+	}
+
+	public boolean isRefrenceOther() {
+		return isRefrenceOther;
+	}
+
+	public void setRefrenceOther(boolean isRefrenceOther) {
+		this.isRefrenceOther = isRefrenceOther;
+	}
+
+	public Class getRefrenceClass() {
+		return refrenceClass;
+	}
+
+	public void setRefrenceClass(Class refrenceClass) {
+		this.refrenceClass = refrenceClass;
 	}
 
 	public void setDefaultValue(String defaultValue) {
@@ -124,14 +187,15 @@ public class ColumnModel {
 		}
 	}
 
-	/**
-	 * Judge current ColumnModel is id column or not.
-	 * 
-	 * @return True if it's id column. False otherwise.
-	 */
-	public boolean isIdColumn() {
-		return "_id".equalsIgnoreCase(columnName)
-				|| "id".equalsIgnoreCase(columnName);
+	@Override
+	public String toString() {
+		return "ColumnModel [columnName=" + columnName + ", columnJavaType="
+				+ columnJavaType + ", columnType=" + columnType
+				+ ", isRefrenceOther=" + isRefrenceOther + ", refrenceClass="
+				+ refrenceClass + ", isSet=" + isSet + ", isLocal=" + isLocal
+				+ ", isPrimaryKey=" + isPrimaryKey + ", isNullable="
+				+ isNullable + ", isUnique=" + isUnique + ", defaultValue="
+				+ defaultValue + "]";
 	}
 
 }
